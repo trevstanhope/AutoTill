@@ -11,7 +11,7 @@ Requires: Python 2.x, OpenCV 2.4.7, Numpy
 import numpy # image processing
 import cv2
 import time
-import sys
+import sys, getopt
 
 # Declarations
 LOGNAME = 'test.csv'
@@ -28,12 +28,12 @@ SAMPLES = 5
 class AutoTill:
 
   ## Initialize
-  def __init__(self, cameras):
+  def __init__(self, mode=0, cameras=1):
     self.left_cycle = HALF_DUTY
     self.right_cycle = HALF_DUTY
     self.current = CENTER
     self.history = SAMPLES*[CENTER]
-
+    self.mode = mode
     self.cameras = []
     for index in range(cameras):
       cam = cv2.VideoCapture(index)
@@ -73,7 +73,7 @@ class AutoTill:
     # right.ChangeDutyCycle(self.right_cycle)
   
   ## Display current values
-  def display(self, mode):
+  def display(self):
     print('Frequency: %s Hz' % self.frequency)
     print('Current Offset: %s px' % self.current)
     print('Difference: %s px' % self.adjusted)
@@ -84,7 +84,7 @@ class AutoTill:
     with open(LOGNAME, 'a') as log:
       log.write(str(self.current) + ',' + str(self.left_cycle) + '\n')
     
-    if mode:
+    if self.mode == 1:
       for image in self.images:
         image[:,self.current + CENTER] = 128
         image[:,self.adjusted + CENTER] = 254  
@@ -97,22 +97,30 @@ class AutoTill:
       print('Releasing Camera')
       cam.release()
 
-if __name__ =='__main__':
-  
+def main(argv):
   try:
-    mode = sys.argv[1]
-  except Exception:
-    mode = False
-  try:
-    cameras = int(sys.argv[2])
-  except Exception:
-    cameras = 1
+    opts, args = getopt.getopt(argv, "m:c:")
+  except getopt.GetoptError:
+    print 'usage: AutoTill.py -m <0/1>, -c <num>'
+    sys.exit(2)
+  for opt, arg in opts:
+    if opt in ('-h'):
+      print '-m <0/1> for normal/developer mode, -c <num> for number cameras'
+      sys.exit(2)
+    elif opt in ("-m"):
+      print 'Mode Selected: ' + arg
+      mode = int(arg)
+    elif opt in ("-c"):
+      cameras = int(arg)    
+  return mode, cameras
 
-  root = AutoTill(cameras)
+if __name__ == "__main__":
+  (mode, cameras) = main(sys.argv[1:])
+  root = AutoTill(cameras=cameras, mode=mode)
   try:
     while True:
       root.find_plants()
       root.adjust_cultivator()
-      root.display(mode)
+      root.display()
   except KeyboardInterrupt:
     root.close()
