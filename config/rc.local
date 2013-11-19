@@ -1,0 +1,4 @@
+#!/bin/sh -e
+# rc.local for AutoTill
+sudo AutoTill.py
+exit 0
