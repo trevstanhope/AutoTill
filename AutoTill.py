@@ -51,13 +51,29 @@ class AutoTill:
       hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
       sat_min = hsv[:,:,1].mean()
       val_min = hsv[:,:,2].mean()
-      GREEN_MIN = numpy.array([30, sat_min, val_min], numpy.uint8)
-      GREEN_MAX = numpy.array([70, 255, 255], numpy.uint8)
-      egi = cv2.inRange(hsv, GREEN_MIN, GREEN_MAX)
-      columns = egi.sum(axis=0)
-      offset = columns.argmax() - CENTER
+      GREEN_MIN = numpy.array([40, sat_min, val_min], numpy.uint8)
+      GREEN_MAX = numpy.array([80, 255, 255], numpy.uint8)
+      RED_MIN = numpy.array([0, 0, val_min], numpy.uint8)
+      RED_MAX = numpy.array([0, 255, 255], numpy.uint8)
+      BLUE_MIN = numpy.array([60, sat_min, val_min], numpy.uint8)
+      BLUE_MAX = numpy.array([120, 255, 255], numpy.uint8)
+      if (sat_min > 60):
+        print('DAYLIGHT MODE')
+        egi = cv2.inRange(hsv, GREEN_MIN, GREEN_MAX)
+        g_columns = egi.sum(axis=0)
+        offset = g_columns.argmax() - CENTER
+      elif (sat_min > 30):
+        print('LOWLIGHT MODE')
+        ebi = cv2.inRange(hsv, BLUE_MIN, BLUE_MAX)
+        b_columns = ebi.sum(axis=0)
+        offset = b_columns.argmax() - CENTER 
+      else:
+        print('NIGHT MODE')
+        eri = cv2.inRange(hsv, RED_MIN, RED_MAX)
+        r_columns = eri.sum(axis=0)
+        offset = r_columns.argmax() - CENTER
       self.offsets.append(offset)
-      self.images.append(egi)
+      self.images.append(rgb) # image to save
     b = time.time()
     self.frequency = int(1/(b-a))
 
@@ -98,18 +114,20 @@ class AutoTill:
       cam.release()
 
 def main(argv):
+  mode = 0
+  cameras = 1
   try:
-    opts, args = getopt.getopt(argv, "m:c:")
+    opts, args = getopt.getopt(argv, "d:c:")
   except getopt.GetoptError:
-    print 'usage: AutoTill.py -m <0/1>, -c <num>'
+    print 'usage: AutoTill.py [options]'
     sys.exit(2)
   for opt, arg in opts:
     if opt in ('-h'):
-      print '-m <0/1> for normal/developer mode, -c <num> for number cameras'
+      print '-d for developer mode, -c <num> for number cameras'
       sys.exit(2)
-    elif opt in ("-m"):
-      print 'Mode Selected: ' + arg
-      mode = int(arg)
+    elif opt in ("-d"):
+      print 'Developer mode selected'
+      mode = 1
     elif opt in ("-c"):
       cameras = int(arg)    
   return mode, cameras
