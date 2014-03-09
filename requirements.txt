@@ -1,0 +1,6 @@
+Flask==0.8
+gps==3.6
+numpy==1.6.2
+pyserial==2.5
+python-daemon==1.5.5
+python-dateutil==1.5
